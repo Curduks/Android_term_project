@@ -85,7 +85,7 @@ public class Firebase {
         fromUserFriendsRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
+                if (dataSnapshot.exists() || fromUserId.equalsIgnoreCase(toUserId)) {
                     // 이미 친구인 상태
                     callback.onRequestResult(false);
                 } else {

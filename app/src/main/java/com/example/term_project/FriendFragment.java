@@ -155,6 +155,8 @@ public class FriendFragment extends Fragment {
                                     }
                                 }
                             });
+                        }else{
+                            Toast.makeText(getContext(),"이미 친구이거나 존재하지 않습니다.",Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
