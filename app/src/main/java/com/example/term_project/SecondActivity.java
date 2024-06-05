@@ -60,7 +60,7 @@ public class SecondActivity extends AppCompatActivity{
         btn_map.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                FragmentView(Map_Fragment);
+                FragmentView(Map_Room_Fragment);
             }
         });
 
@@ -88,6 +88,13 @@ public class SecondActivity extends AppCompatActivity{
 
                 mapFragment.setArguments(bundle);
                 break;
+
+            case 3:
+                Map_Room_Fragment mapRoomFragment = new Map_Room_Fragment();
+                transaction.replace(R.id.fragment_container, mapRoomFragment);
+                transaction.commit();
+
+                mapRoomFragment.setArguments(bundle);
         }
     }
 
