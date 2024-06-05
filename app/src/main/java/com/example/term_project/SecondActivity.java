@@ -44,6 +44,7 @@ public class SecondActivity extends AppCompatActivity{
 
         Button btn_friend = (Button) findViewById(R.id.btn_friend);
         Button btn_map = (Button) findViewById(R.id.btn_map);
+        Button btn_room = (Button) findViewById(R.id.btn_room);
 
         Intent intent = getIntent();
         userID = intent.getStringExtra("userID");
@@ -57,10 +58,17 @@ public class SecondActivity extends AppCompatActivity{
             }
         });
 
-        btn_map.setOnClickListener(new View.OnClickListener() {
+        btn_room.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 FragmentView(Map_Room_Fragment);
+            }
+        });
+
+        btn_map.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                FragmentView(Map_Fragment);
             }
         });
 
