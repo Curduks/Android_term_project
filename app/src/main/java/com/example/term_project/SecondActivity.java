@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -16,7 +18,6 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
-import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.OnMapReadyCallback;
 import com.naver.maps.map.overlay.Marker;
@@ -24,6 +25,11 @@ import com.naver.maps.map.overlay.Marker;
 public class SecondActivity extends AppCompatActivity{
 
     private long backKeyPressedTime = 0;
+
+    private final int Friend_Fragment = 1;
+    private final int Map_Fragment = 2;
+    private final int Map_Room_Fragment = 3;
+    String userID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,19 +42,53 @@ public class SecondActivity extends AppCompatActivity{
             return insets;
         });
 
+        Button btn_friend = (Button) findViewById(R.id.btn_friend);
+        Button btn_map = (Button) findViewById(R.id.btn_map);
+
         Intent intent = getIntent();
-        String userID = intent.getStringExtra("userID");
+        userID = intent.getStringExtra("userID");
 
-        FriendFragment friendFragment = new FriendFragment();
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.add(R.id.fragment_container, friendFragment);
-        fragmentTransaction.commit();
+        FragmentView(Friend_Fragment);
 
+        btn_friend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                FragmentView(Friend_Fragment);
+            }
+        });
+
+        btn_map.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                FragmentView(Map_Fragment);
+            }
+        });
+
+    }
+
+    private void FragmentView(int fragment){
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         Bundle bundle = new Bundle();
         bundle.putString("userID",userID);
-        friendFragment.setArguments(bundle);
+        switch (fragment){
+            case 1:
+                // 첫번 째 프래그먼트 호출
+                FriendFragment friendFragment = new FriendFragment();
+                transaction.replace(R.id.fragment_container, friendFragment);
+                transaction.commit();
 
+                friendFragment.setArguments(bundle);
+                break;
+
+            case 2:
+                // 두번 째 프래그먼트 호출
+                MapFragment mapFragment = new MapFragment();
+                transaction.replace(R.id.fragment_container, mapFragment);
+                transaction.commit();
+
+                mapFragment.setArguments(bundle);
+                break;
+        }
     }
 
     @Override
