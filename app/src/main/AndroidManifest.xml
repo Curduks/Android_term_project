@@ -2,9 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
+        android:appComponentFactory="whateverString"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -12,9 +15,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Term_project"
-        tools:targetApi="31"
         tools:replace="android:appComponentFactory"
-        android:appComponentFactory="whateverString">
+        tools:targetApi="31">
+        <activity
+            android:name=".Map_friend_invite_list"
+            android:exported="false" />
         <activity
             android:name=".SecondActivity"
             android:exported="false" />
@@ -30,10 +35,7 @@
 
         <meta-data
             android:name="com.naver.maps.map.CLIENT_ID"
-            android:value="tgakjtfwiy"/>
+            android:value="tgakjtfwiy" />
     </application>
-    
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
 </manifest>

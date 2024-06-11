@@ -1,5 +1,7 @@
 package com.example.term_project;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import com.google.firebase.database.DataSnapshot;
@@ -7,6 +9,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Firebase {
     DatabaseReference mDatabase;
@@ -134,6 +139,244 @@ public class Firebase {
     public interface RequestCallback {
         void onRequestResult(boolean success);
     }
+
+    //-------------방 관련 -------------------//
+    public void createRoom(String UserID){
+        DatabaseReference roomsRef = mDatabase.child("rooms");
+
+        String roomName = "Room " + UserID;
+        Room newRoom = new Room(roomName, roomName);
+        roomsRef.child(roomName).setValue(newRoom).addOnCompleteListener(task -> {
+           if(task.isSuccessful()){
+               addUserToRoom(UserID);
+           }
+        });
+    }
+
+    private void addUserToRoom(String currentUserId) {
+        String roomId = "Room " + currentUserId;
+        DatabaseReference participantsRef = mDatabase.child("rooms").child(roomId).child("participants");
+        participantsRef.child(currentUserId).setValue(true);
+
+        DatabaseReference userRoomsRef = mDatabase.child("users").child(currentUserId).child("joinedRooms");
+        userRoomsRef.child(roomId).setValue(true);
+    }
+
+    public void InviteFriend(String currentUserId, String friendId){
+        String roomId = "Room " + currentUserId;
+        DatabaseReference room_Ref = mDatabase.child("rooms").child(roomId).child("invites");
+        room_Ref.child(friendId).setValue("pending");
+
+        DatabaseReference target_Ref = mDatabase.child("users").child(friendId).child("room_notifications");
+        target_Ref.child(roomId).setValue("pending");
+
+    }
+
+    public void checkIfUserRoomExists(String name,final checkIfUserRoomCallback callback) {
+        DatabaseReference check_Ref = mDatabase.child("users").child(name).child("joinedRooms");
+
+        check_Ref.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    callback.oncheckIfUserRoomResult(true);
+                }else{
+                    callback.oncheckIfUserRoomResult(false);
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+    }
+
+    // 콜백 인터페이스
+    public interface checkIfUserRoomCallback {
+        void oncheckIfUserRoomResult(boolean success);
+    }
+
+    public void listRoomRequest(String userId){
+
+    }
+
+
+    // 방 초대 요청 수락 메소드
+    public void acceptRoomRequest(String userId, String roomId) {
+        DatabaseReference UserRef = mDatabase.child("users").child(userId).child("room_notifications");
+        DatabaseReference UserRoomRef = mDatabase.child("users").child(userId).child("joinedRooms");
+        DatabaseReference roomRef = mDatabase.child("rooms").child(roomId).child("participants");
+
+        UserRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()){
+                    if(snapshot.getKey().equalsIgnoreCase(roomId)){
+                        snapshot.getRef().removeValue();
+                        roomRef.child(userId).setValue(true);
+                        UserRoomRef.child(roomId).setValue(true);
+                    }
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    // 방 초대 거절 수락 메소드
+    public void declineRoomRequest(String userId, String roomId) {
+        DatabaseReference UserRef = mDatabase.child("users").child(userId).child("room_notifications");
+        DatabaseReference roomRef = mDatabase.child("rooms").child(roomId).child("participants");
+
+        UserRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()){
+                    if(snapshot.getKey().equalsIgnoreCase(roomId)){
+                        snapshot.getRef().removeValue();
+                    }
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    // 방 나가기 메소드
+    public void RoomExit(String userId) {
+        DatabaseReference UserRef = mDatabase.child("users").child(userId).child("joinedRooms");
+
+        UserRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for(DataSnapshot snapshot : dataSnapshot.getChildren()){
+                    String roomId = snapshot.getKey();
+                    if(roomId.equalsIgnoreCase("Room "+ userId)){ // 방장이면
+                        DatabaseReference roomRef = mDatabase.child("rooms").child(roomId).child("participants");
+                        roomRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot1) {
+                                for(DataSnapshot snapshot1 : dataSnapshot1.getChildren()){
+                                    DatabaseReference allRef = mDatabase.child("users").child(snapshot1.getKey()).child("joinedRooms");
+                                    allRef.removeValue();
+                                }
+                                DatabaseReference allRef2 = mDatabase.child("rooms").child(roomId);
+                                allRef2.removeValue();
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+                    }else{
+                        UserRef.removeValue();
+                        DatabaseReference roomRef = mDatabase.child("rooms").child(roomId).child("participants");
+                        roomRef.child(userId).removeValue();
+                    }
+                    //roomRef.child(userId).removeValue();
+                    //UserRef.child(roomId).removeValue();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    public void getRoomNotifications(String userId, final RoomNotificationsCallback callback) {
+        // 특정 유저의 room_notifications 경로 참조
+        DatabaseReference notificationsRef = mDatabase.child("users").child(userId).child("room_notifications");
+
+        // 해당 경로에서 방 목록을 가져옴
+        notificationsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    List<String> roomList = new ArrayList<>();
+
+                    // 모든 자식 노드를 탐색하여 방 이름을 리스트에 추가
+                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                        String room = snapshot.getKey();
+                        if (room != null) {
+                            roomList.add(room);
+                        }
+                    }
+
+                    // 콜백을 통해 방 목록 반환
+                    callback.onCallback(roomList);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.w("Firebase", "loadRoomNotifications:onCancelled", databaseError.toException());
+            }
+        });
+    }
+
+    // 방 목록을 반환하기 위한 콜백 인터페이스
+    public interface RoomNotificationsCallback {
+        void onCallback(List<String> roomList);
+    }
+
+    public void getRoomUsers(String userId, final RoomUsersCallback callback) {
+        // 특정 유저의 room_notifications 경로 참조
+        DatabaseReference joinedRoomRef = mDatabase.child("users").child(userId).child("joinedRooms");
+
+        // 해당 경로에서 방 목록을 가져옴
+        joinedRoomRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                //List<String> userList = new ArrayList<>();
+
+                // 모든 자식 노드를 탐색하여 방 이름을 리스트에 추가
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    String room = snapshot.getKey();
+                    if (room != null) {
+                        DatabaseReference roomRef = mDatabase.child("rooms").child(room).child("participants");
+                        roomRef.addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot1) {
+                                if(dataSnapshot1.exists()){
+                                    List<String> userList = new ArrayList<>();
+                                    for(DataSnapshot snapshot1 : dataSnapshot1.getChildren()){
+                                        String users = snapshot1.getKey();
+                                        userList.add(users);
+                                    }
+                                    callback.onCallback(userList);
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+                    }
+                }
+                // 콜백을 통해 방 목록 반환
+                //callback.onCallback(userList);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.w("Firebase", "loadRoomNotifications:onCancelled", databaseError.toException());
+            }
+        });
+    }
+
+    public interface RoomUsersCallback {
+        void onCallback(List<String> userList);
+    }
+
 
 
 }
