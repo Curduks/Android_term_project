@@ -1,5 +1,6 @@
 package com.example.term_project;
 
+import android.location.Location;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -11,7 +12,9 @@ import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Firebase {
     DatabaseReference mDatabase;
@@ -375,6 +378,87 @@ public class Firebase {
 
     public interface RoomUsersCallback {
         void onCallback(List<String> userList);
+    }
+
+    public void add_user_location(String userId, Location location){
+        DatabaseReference joinedRoomRef = mDatabase.child("users").child(userId).child("joinedRooms");
+
+        joinedRoomRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                //List<String> userList = new ArrayList<>();
+
+                // 모든 자식 노드를 탐색하여 방 이름을 리스트에 추가
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    String room = snapshot.getKey();
+                    if (room != null) {
+                        DatabaseReference roomRef = mDatabase.child("rooms").child(room).child("location");
+                        String userlocation = location.getLatitude() + "," + location.getLongitude();
+                        roomRef.child(userId).setValue(userlocation);
+                    }
+                }
+                // 콜백을 통해 방 목록 반환
+                //callback.onCallback(userList);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    public void getRoomUsers_loc(String userId, final RoomUsersLocCallback callback) {
+        // 특정 유저의 room_notifications 경로 참조
+        DatabaseReference joinedRoomRef = mDatabase.child("users").child(userId).child("joinedRooms");
+
+        // 해당 경로에서 방 목록을 가져옴
+        joinedRoomRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                //List<String> userList = new ArrayList<>();
+
+                // 모든 자식 노드를 탐색하여 방 이름을 리스트에 추가
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    String room = snapshot.getKey();
+                    if (room != null) {
+                        DatabaseReference roomRef = mDatabase.child("rooms").child(room).child("location");
+                        roomRef.addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot1) {
+                                if(dataSnapshot1.exists()){
+                                    HashMap<String, String> userList = new HashMap<>();
+                                    for(DataSnapshot snapshot1 : dataSnapshot1.getChildren()){
+                                        String users_name = snapshot1.getKey();
+                                        if(!users_name.equalsIgnoreCase(userId)) {
+                                            String users_loc = snapshot1.getValue(String.class);
+                                            userList.put(users_name, users_loc);
+                                        }
+                                    }
+                                    callback.onCallback(userList);
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+                    }
+                }
+                // 콜백을 통해 방 목록 반환
+                //callback.onCallback(userList);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.w("Firebase", "loadRoomNotifications:onCancelled", databaseError.toException());
+            }
+        });
+    }
+
+    public interface RoomUsersLocCallback {
+        void onCallback(Map<String,String> userList);
     }
 
 

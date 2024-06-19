@@ -1,31 +1,24 @@
 package com.example.term_project;
 
-import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PersistableBundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
-import com.naver.maps.map.NaverMap;
-import com.naver.maps.map.OnMapReadyCallback;
-import com.naver.maps.map.overlay.Marker;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class SecondActivity extends AppCompatActivity{
 
@@ -34,6 +27,8 @@ public class SecondActivity extends AppCompatActivity{
     private final int Friend_Fragment = 1;
     private final int Map_Fragment = 2;
     private final int Map_Room_Fragment = 3;
+    DatabaseReference mDatabase;
+    Firebase firebase;
     String userID;
 
     @Override
@@ -47,16 +42,14 @@ public class SecondActivity extends AppCompatActivity{
             return insets;
         });
 
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+        firebase = new Firebase(mDatabase);
+
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 10);
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
 
-        Intent serviceIntent = new Intent(this, GPS_Service.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
-        }
+
 
         Button btn_friend = (Button) findViewById(R.id.btn_friend);
         Button btn_map = (Button) findViewById(R.id.btn_map);
@@ -64,6 +57,19 @@ public class SecondActivity extends AppCompatActivity{
 
         Intent intent = getIntent();
         userID = intent.getStringExtra("userID");
+
+        Intent serviceIntent = new Intent(this, GPS_Service.class);
+
+        serviceIntent.putExtra("userID",userID);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+            //startForegroundService(serviceIntent);
+        }
+
+
 
         FragmentView(Friend_Fragment);
 
@@ -105,12 +111,15 @@ public class SecondActivity extends AppCompatActivity{
                 break;
 
             case 2:
+                Intent intent2 = new Intent(SecondActivity.this, naverMap_Activity.class);
+                intent2.putExtra("userID",userID);
+                startActivity(intent2);
                 // 두번 째 프래그먼트 호출
-                MapFragment mapFragment = new MapFragment();
-                transaction.replace(R.id.fragment_container, mapFragment);
-                transaction.commit();
-
-                mapFragment.setArguments(bundle);
+//                NaverMapFragment naverMapFragment = new NaverMapFragment();
+//                transaction.replace(R.id.fragment_container, naverMapFragment);
+//                transaction.commit();
+//
+//                naverMapFragment.setArguments(bundle);
                 break;
 
             case 3:
@@ -135,5 +144,11 @@ public class SecondActivity extends AppCompatActivity{
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
 
+        Intent serviceIntent = new Intent(this, GPS_Service.class);
+        stopService(serviceIntent);
+    }
 }
